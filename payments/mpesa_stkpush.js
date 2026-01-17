@@ -3,9 +3,9 @@ const request = require("request");
 const bodyParser = require("body-parser");
 const app = express();
 const cors = require("cors");
-const db = require("./config/db");
-const redis = require("./config/redis")
-const { parseMpesaCallback } = require("./utils/mpesa");
+const db = require("../config/db");
+const redis = require("../config/redis")
+const { parseMpesaCallback } = require("../utils/mpesa");
 
 
 ///-----Port-----///
