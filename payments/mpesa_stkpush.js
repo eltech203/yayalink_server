@@ -3,6 +3,10 @@ const request = require("request");
 const bodyParser = require("body-parser");
 const app = express();
 const cors = require("cors");
+const db = require("./config/db");
+const redis = require("./config/redis")
+const { parseMpesaCallback } = require("./utils/mpesa");
+
 
 ///-----Port-----///
 const port = process.env.PORT1 || 3000;
@@ -71,7 +75,7 @@ app.post("/stk", access, _urlencoded, function (req, res) {
         PartyA: _phoneNumber,
         PartyB: _shortCode, //Till  No.
         PhoneNumber: _phoneNumber,
-        CallBackURL: "https://paymentservice-production-75bf.up.railway.app/yayalink/stk_callback",
+        CallBackURL: "https://yayalinkserver-production.up.railway.app/api/payments/stk_callback",
         AccountReference: "Yaya Nanies App",
         TransactionDesc: "_transDec",
       },
@@ -101,45 +105,75 @@ const middleware = (req, res, next) => {
 };
 
 ///------STK_CALLBACK-----///
-app.post("/stk_callback", _urlencoded, middleware, function (req, res, next) {
-  var transID = "";
-  var amount = "";
-  var transdate = "";
-  var transNo = "";
-  let _checkout_ID = req.checkoutID;
-  let _Name = req.name;
-  let _UID = req.uid;
+app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
+  try {
+    const callback = req.body.Body.stkCallback;
 
-  console.log(".......... STK Callback ..................");
-  if (res.status(200)) {
-    console.log("CheckOutId", _checkout_ID);
-
-    res.json(req.body.Body.stkCallback.CallbackMetadata);
-    console.log(req.body.Body.stkCallback.CallbackMetadata);
-
-    if (
-      (Balance =
-        req.body.Body.stkCallback.CallbackMetadata.Item[2].Name == "Balance")
-    ) {
-      amount = req.body.Body.stkCallback.CallbackMetadata.Item[0].Value;
-      transID = req.body.Body.stkCallback.CallbackMetadata.Item[1].Value;
-      transNo = req.body.Body.stkCallback.CallbackMetadata.Item[4].Value;
-      transdate = req.body.Body.stkCallback.CallbackMetadata.Item[3].Value;
-
-  
-     
-
-     
-    } else {
-      amount = req.body.Body.stkCallback.CallbackMetadata.Item[0].Value;
-      transID = req.body.Body.stkCallback.CallbackMetadata.Item[1].Value;
-      transNo = req.body.Body.stkCallback.CallbackMetadata.Item[3].Value;
-      transdate = req.body.Body.stkCallback.CallbackMetadata.Item[2].Value;
-
-     
+    if (callback.ResultCode !== 0) {
+      return res.status(200).json({ message: "Payment failed" });
     }
+
+    const { mpesa_receipt, amount, transaction_date } =
+      parseMpesaCallback(callback);
+
+    const uid = req.uid;
+
+    if (!uid || !mpesa_receipt) {
+      return res.status(200).json({ message: "Invalid callback data" });
+    }
+
+    /* 🔒 Prevent duplicate insert */
+    const [existing] = await new Promise((resolve, reject) => {
+      db.query(
+        `SELECT id FROM yaya_payments WHERE mpesa_receipt=?`,
+        [mpesa_receipt],
+        (err, rows) => (err ? reject(err) : resolve(rows))
+      );
+    });
+
+    if (existing) {
+      return res.status(200).json({ message: "Already processed" });
+    }
+
+    /* ✅ Insert payment */
+    await new Promise((resolve, reject) => {
+      db.query(
+        `
+        INSERT INTO yaya_payments 
+        (uid, user_type, mpesa_receipt, amount, payment_date)
+        VALUES (?, 'EMPLOYER', ?, ?, NOW())
+        `,
+        [uid, mpesa_receipt, amount],
+        (err) => (err ? reject(err) : resolve())
+      );
+    });
+
+    /* ✅ Update employer */
+    await new Promise((resolve, reject) => {
+      db.query(
+        `
+        UPDATE yaya_employers
+        SET mpesa_receipt=?, payment_date=NOW()
+        WHERE user_id=?
+        `,
+        [mpesa_receipt, uid],
+        (err) => (err ? reject(err) : resolve())
+      );
+    });
+
+    /* 🧹 Clear cache */
+    await redis.del(`employer:${uid}`);
+    await redis.del(`employer:access:${uid}`);
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("❌ Employer payment error:", error);
+    return res.status(200).json({ success: false });
   }
 });
+
+
+
 ///----STK QUERY ---//
 app.post("/stk/query", access, _urlencoded, function (req, res, next) {
   let _checkoutRequestId = req.body.checkoutRequestId;
@@ -241,7 +275,7 @@ app.post("/stk_register", access, _urlencoded, function (req, res) {
         PartyA: _BPhone,
         PartyB: _shortCode, //Till  No.
         PhoneNumber: _BPhone,
-        CallBackURL: "https://paymentservice-production-75bf.up.railway.app/yayalink/stk_callback2",
+        CallBackURL: "https://yayalinkserver-production.up.railway.app/api/payments/stk_callback2",
         AccountReference: "Yaya Bureau App ",
         TransactionDesc: "_transDec",
       },
@@ -269,44 +303,69 @@ const middleware2 = (req, res, next) => {
 };
 
 ///------STK_CALLBACK-----///
-app.post("/stk_callback2", _urlencoded, middleware2, function (req, res, next) {
-  var transID = "";
-  var amount = "";
-  var transdate = "";
-  var transNo = "";
-  let _checkout_ID = req.checkoutID;
-  let _UiD = req.uid;
-  let _Name = req.name;
-  var total_amount;
-  console.log(".......... STK Callback ..................");
-  if (res.status(200)) {
-    console.log("CheckOutId", _checkout_ID);
+app.post("/stk_callback2", _urlencoded, middleware2, async (req, res) => {
+  try {
+    const callback = req.body.Body.stkCallback;
 
-    res.json(req.body.Body.stkCallback.CallbackMetadata);
-    console.log(req.body.Body.stkCallback.CallbackMetadata);
-
-    if (
-      (Balance =
-        req.body.Body.stkCallback.CallbackMetadata.Item[2].Name == "Balance")
-    ) {
-      amount = req.body.Body.stkCallback.CallbackMetadata.Item[0].Value;
-      transID = req.body.Body.stkCallback.CallbackMetadata.Item[1].Value;
-      transNo = req.body.Body.stkCallback.CallbackMetadata.Item[4].Value;
-      transdate = req.body.Body.stkCallback.CallbackMetadata.Item[3].Value;
-
-      
-
-       
-    } else {
-      amount = req.body.Body.stkCallback.CallbackMetadata.Item[0].Value;
-      transID = req.body.Body.stkCallback.CallbackMetadata.Item[1].Value;
-      transNo = req.body.Body.stkCallback.CallbackMetadata.Item[3].Value;
-      transdate = req.body.Body.stkCallback.CallbackMetadata.Item[2].Value;
-
-   
+    if (callback.ResultCode !== 0) {
+      return res.status(200).json({ message: "Payment failed" });
     }
+
+    const { mpesa_receipt, amount } = parseMpesaCallback(callback);
+    const uid = req.uid;
+
+    if (!uid || !mpesa_receipt) {
+      return res.status(200).json({ message: "Invalid callback data" });
+    }
+
+    /* 🔒 Prevent duplicates */
+    const exists = await new Promise((resolve, reject) => {
+      db.query(
+        `SELECT id FROM yaya_payments WHERE mpesa_receipt=?`,
+        [mpesa_receipt],
+        (err, rows) => (err ? reject(err) : resolve(rows.length))
+      );
+    });
+
+    if (exists) {
+      return res.status(200).json({ message: "Already processed" });
+    }
+
+    /* ✅ Insert payment */
+    await new Promise((resolve, reject) => {
+      db.query(
+        `
+        INSERT INTO yaya_payments
+        (uid, user_type, mpesa_receipt, amount, payment_date)
+        VALUES (?, 'BUREAU', ?, ?, NOW())
+        `,
+        [uid, mpesa_receipt, amount],
+        (err) => (err ? reject(err) : resolve())
+      );
+    });
+
+    /* ✅ Update bureau */
+    await new Promise((resolve, reject) => {
+      db.query(
+        `
+        UPDATE yaya_bureaus
+        SET mpesa_receipt=?, payment_date=NOW(), preference_count=1
+        WHERE user_id=?
+        `,
+        [mpesa_receipt, uid],
+        (err) => (err ? reject(err) : resolve())
+      );
+    });
+
+    await redis.del(`bureau:${uid}`);
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("❌ Bureau payment error:", error);
+    return res.status(200).json({ success: false });
   }
 });
+
 ///----STK QUERY ---//
 app.post("/stk/query2", access, _urlencoded, function (req, res, next) {
   let _checkoutRequestId = req.body.checkoutRequestId;
