@@ -116,7 +116,7 @@ app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
     const { mpesa_receipt, amount, transaction_date } =
       parseMpesaCallback(callback);
 
-    const uid = req.uid;
+    const uid = _UserID;
 
     if (!uid || !mpesa_receipt) {
       return res.status(200).json({ message: "Invalid callback data" });
@@ -154,7 +154,7 @@ app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
         `
         UPDATE yaya_employers
         SET mpesa_receipt=?, payment_date=NOW()
-        WHERE user_id=?
+        WHERE uid=?
         `,
         [mpesa_receipt, uid],
         (err) => (err ? reject(err) : resolve())
