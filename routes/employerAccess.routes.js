@@ -7,7 +7,7 @@ router.get(
   checkEmployerPaymentStatus
 );
 
-router.post("/candidates/select", selectCandidate);
+router.post("/select", selectCandidate);
 
 
 module.exports = router;
