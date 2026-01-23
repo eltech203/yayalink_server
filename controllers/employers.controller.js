@@ -89,6 +89,43 @@ exports.dischargeCandidate = async (req, res) => {
 
 
 
+exports.getEmployerCandidates = async (req, res) => {
+  const { employer_uid } = req.params;
+
+  if (!employer_uid) {
+    return res.status(200).json([]);
+  }
+
+  try {
+    const cacheKey = `employer:candidates:${employer_uid}`;
+
+    /* 🔹 Redis */
+    const cached = await redis.get(cacheKey);
+    if (cached) return res.json(JSON.parse(cached));
+
+    db.query(
+      `
+      SELECT *
+      FROM yaya_candidates
+      WHERE employer_uid = ?
+      ORDER BY date_selected DESC
+      `,
+      [employer_uid],
+      async (err, rows) => {
+        if (err) {
+          console.error("DB error:", err);
+          return res.status(500).json([]);
+        }
+
+        await redis.setEx(cacheKey, 300, JSON.stringify(rows));
+        res.json(rows);
+      }
+    );
+  } catch (err) {
+    console.error("Fetch employer candidates error:", err);
+    res.status(500).json([]);
+  }
+};
 
 
 
