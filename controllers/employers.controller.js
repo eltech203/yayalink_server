@@ -29,23 +29,64 @@ exports.selectCandidate = async (req, res) => {
 
 
 exports.dischargeCandidate = async (req, res) => {
-  db.query(
-    `
-    UPDATE yaya_candidates
-    SET status='Discharged', date_discharged=NOW()
-    WHERE candidate_id=? AND status='Selected'
-    `,
-    [req.params.id],
-    async (err, result) => {
-      if (err || result.affectedRows === 0)
-        return res.status(400).json({ message: "Discharge failed" });
+  const { id } = req.params;
+  const { employer_uid, discharge_message } = req.body;
 
-      await redis.del(candidateKey(req.params.id));
-      await redis.del(candidatesAvailableKey());
-      res.json({ message: "Candidate discharged" });
-    }
-  );
+  if (!id) {
+    return res.status(400).json({ message: "Missing candidate id" });
+  }
+
+  try {
+    db.query(
+      `
+      UPDATE yaya_candidates
+      SET
+        status = 'Available',
+        working_status = 'available',
+        employer_uid = NULL,
+        employer_name = NULL,
+        employer_no = NULL,
+        employer_city = NULL,
+        employer_county = NULL,
+        date_selected = NULL,
+        discharge_date = NOW(),
+        discharge_message = ?
+      WHERE candidate_id = ?
+        AND status = 'Unavailable'
+      `,
+      [discharge_message || 'Discharged by employer', id],
+      async (err, result) => {
+        if (err) {
+          console.error("❌ Discharge error:", err);
+          return res.status(500).json({ message: "DB error" });
+        }
+
+        if (result.affectedRows === 0) {
+          return res.status(200).json({
+            message: "Candidate not found or already discharged"
+          });
+        }
+
+        /* 🔹 Clear Redis caches */
+        await redis.del(`candidate:${id}`);
+        await redis.del("candidates:available");
+
+        if (employer_uid) {
+          await redis.del(`employer:candidates:${employer_uid}`);
+          await redis.del(`employer:access:${employer_uid}`);
+        }
+
+        return res.json({
+          message: "✅ Candidate discharged successfully"
+        });
+      }
+    );
+  } catch (error) {
+    console.error("❌ Fatal discharge error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
 };
+
 
 
 

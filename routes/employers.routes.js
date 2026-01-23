@@ -10,9 +10,9 @@ const {
 } = require("../controllers/employers.controller");
 
 router.post("/register",  createEmployer);
-router.get("/:uid",  getEmployer);
-router.put("/:uid",  updateEmployer);
-router.delete("/:uid",  deleteEmployer);
+router.get("/get-employer/:uid",  getEmployer);
+router.put("/update-employer/:uid",  updateEmployer);
+router.delete("/delete-employer/:uid",  deleteEmployer);
 
 router.post("/select/:id",  selectCandidate);
 router.post("/discharge/:id",  dischargeCandidate);
