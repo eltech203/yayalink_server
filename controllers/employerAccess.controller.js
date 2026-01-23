@@ -191,7 +191,7 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
 
     /* 🔍 Calculate days remaining */
     else {
-      const daysRemaining = getDaysRemaining(rows[0].payment_date, 30);
+      const daysRemaining = getDaysRemaining(rows[0].payment_date, 3);
 
       /* ⏰ Expired → UPDATE DB FIRST */
       if (daysRemaining === 0) {
