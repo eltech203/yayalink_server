@@ -12,7 +12,7 @@ exports.checkEmployerAccess = async (req, res) => {
   if (!uid) {
     return res.status(200).json({
       allowed: false,
-      reason: "INVALID_UID",
+      message: "INVALID_UID",
     });
   }
 
@@ -50,7 +50,7 @@ exports.checkEmployerAccess = async (req, res) => {
     if (!rows || rows.length === 0) {
       response = {
         allowed: false,
-        reason: "EMPLOYER_NOT_FOUND",
+        message: "EMPLOYER_NOT_FOUND",
       };
     }
 
@@ -58,7 +58,7 @@ exports.checkEmployerAccess = async (req, res) => {
     else if (!rows[0].mpesa_receipt || !rows[0].payment_date) {
       response = {
         allowed: false,
-        reason: "PAYMENT_REQUIRED",
+        message: "PAYMENT_REQUIRED",
       };
     }
 
@@ -97,7 +97,7 @@ exports.checkEmployerAccess = async (req, res) => {
 
       response = {
         allowed: false,
-        reason: "GRACE_PERIOD_EXPIRED",
+        message: "GRACE_PERIOD_EXPIRED",
       };
     }
 
@@ -122,7 +122,7 @@ exports.checkEmployerAccess = async (req, res) => {
     console.error("Employer access fatal error:", error);
     return res.status(500).json({
       allowed: false,
-      reason: "SERVER_ERROR",
+      message: "SERVER_ERROR",
     });
   }
 };
@@ -137,7 +137,7 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
     return res.status(200).json({
       paid: false,
       days_remaining: 0,
-      reason: "INVALID_UID",
+      message: "INVALID_UID",
     });
   }
 
@@ -176,7 +176,7 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
       response = {
         paid: false,
         days_remaining: 0,
-        reason: "EMPLOYER_NOT_FOUND",
+        message: "EMPLOYER_NOT_FOUND",
       };
     }
 
@@ -185,7 +185,7 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
       response = {
         paid: false,
         days_remaining: 0,
-        reason: "PAYMENT_REQUIRED",
+        message: "PAYMENT_REQUIRED",
       };
     }
 
@@ -220,7 +220,7 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
         response = {
           paid: false,
           days_remaining: 0,
-          reason: "GRACE_PERIOD_EXPIRED",
+          message: "GRACE_PERIOD_EXPIRED",
         };
       } else {
         response = {
@@ -245,7 +245,7 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
     return res.status(500).json({
       paid: false,
       days_remaining: 0,
-      reason: "SERVER_ERROR",
+      message: "SERVER_ERROR",
     });
   }
 };
@@ -257,7 +257,7 @@ exports.selectCandidate = async (req, res) => {
   if (!employer_uid || !candidate_id) {
     return res.status(200).json({
       success: false,
-      reason: "MISSING_PARAMS",
+      message: "MISSING_PARAMS",
     });
   }
 
@@ -282,7 +282,7 @@ exports.selectCandidate = async (req, res) => {
     if (!employerRows.length) {
       return res.status(200).json({
         success: false,
-        reason: "EMPLOYER_NOT_FOUND",
+        message: "EMPLOYER_NOT_FOUND",
       });
     }
 
@@ -307,7 +307,7 @@ exports.selectCandidate = async (req, res) => {
     if (countRows[0].total >= 3) {
       return res.status(200).json({
         success: false,
-        reason: "SELECTION_LIMIT_REACHED",
+        message: "SELECTION_LIMIT_REACHED",
       });
     }
 
@@ -331,14 +331,14 @@ exports.selectCandidate = async (req, res) => {
     if (!candidateRows.length) {
       return res.status(200).json({
         success: false,
-        reason: "CANDIDATE_NOT_FOUND",
+        message: "CANDIDATE_NOT_FOUND",
       });
     }
 
     if (candidateRows[0].status !== "Available") {
       return res.status(200).json({
         success: false,
-        reason: "CANDIDATE_UNAVAILABLE",
+        message: "CANDIDATE_UNAVAILABLE",
       });
     }
 
@@ -389,7 +389,7 @@ exports.selectCandidate = async (req, res) => {
     console.error("Select candidate error:", error.message);
     return res.status(500).json({
       success: false,
-      reason: "SERVER_ERROR",
+      message: "SERVER_ERROR",
     });
   }
 };
