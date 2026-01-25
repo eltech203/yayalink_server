@@ -157,6 +157,7 @@ exports.createEmployer = async (req, res) => {
     email,
     phone_no,
     city,
+    access_expires_at,
     county,
     street_name,
     user_image
@@ -176,6 +177,7 @@ exports.createEmployer = async (req, res) => {
           email,
           phone_no,
           city,
+          access_expires_at,
           county,
           street_name,
           user_image
