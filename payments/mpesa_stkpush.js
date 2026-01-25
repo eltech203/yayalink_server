@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   next();
 });
 
-let _checkoutRequestId, _UserID, _Username;
+let _checkoutRequestId, _UserID, _Username,plan_days;
 
 ///------STK push Activate------/////
 
@@ -43,6 +43,7 @@ app.post("/stk", access, _urlencoded, function (req, res) {
   let _Amount = req.body.amount;
   _UserID = req.body.user_id;
   _Username = req.body.User_name;
+  plan_days = req.body.plan_days;
 
   let endpoint = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
   let auth = "Bearer " + req.access_token;
@@ -100,6 +101,7 @@ app.post("/stk", access, _urlencoded, function (req, res) {
 const middleware = (req, res, next) => {
   req.checkoutID = _checkoutRequestId;
   req.uid = _UserID;
+  req.plan_days = plan_days;
   req.name = _Username;
   next();
 };
@@ -115,8 +117,8 @@ app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
 
     const { mpesa_receipt, amount } = parseMpesaCallback(callback);
 
-    const uid = req.uid;              // ✅ FIXED
-    const planDays = req.plan_days;   // 3 | 7 | 30
+    const uid = _UserID;              // ✅ FIXED
+    const planDays = plan_days;   // 3 | 7 | 30
 
     if (!uid || !mpesa_receipt || !planDays) {
       return res.status(200).json({ message: "Invalid callback data" });
