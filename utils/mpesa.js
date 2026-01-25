@@ -1,15 +1,13 @@
 exports.parseMpesaCallback = (callback) => {
   const items = callback.CallbackMetadata.Item;
 
-  const getValue = (name) => {
-    const item = items.find(i => i.Name === name);
-    return item ? item.Value : null;
-  };
+  const find = (name) =>
+    items.find((i) => i.Name === name)?.Value;
 
   return {
-    amount: getValue("Amount"),
-    mpesa_receipt: getValue("MpesaReceiptNumber"),
-    phone: getValue("PhoneNumber"),
-    transaction_date: getValue("TransactionDate")
+    amount: find("Amount"),
+    mpesa_receipt: find("MpesaReceiptNumber"),
+    transaction_date: find("TransactionDate"),
+    phone: find("PhoneNumber"),
   };
 };

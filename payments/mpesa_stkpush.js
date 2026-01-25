@@ -107,39 +107,39 @@ const middleware = (req, res, next) => {
 ///------STK_CALLBACK-----///
 app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
   try {
-    const callback = req.body.Body.stkCallback;
+    const callback = req.body?.Body?.stkCallback;
 
-    if (callback.ResultCode !== 0) {
+    if (!callback || callback.ResultCode !== 0) {
       return res.status(200).json({ message: "Payment failed" });
     }
 
-    const { mpesa_receipt, amount, transaction_date } =
-      parseMpesaCallback(callback);
+    const { mpesa_receipt, amount } = parseMpesaCallback(callback);
 
-    const uid = _UserID;
+    const uid = req.uid;              // ✅ FIXED
+    const planDays = req.plan_days;   // 3 | 7 | 30
 
-    if (!uid || !mpesa_receipt) {
+    if (!uid || !mpesa_receipt || !planDays) {
       return res.status(200).json({ message: "Invalid callback data" });
     }
 
-    /* 🔒 Prevent duplicate insert */
-    const [existing] = await new Promise((resolve, reject) => {
+    /* 🔒 Prevent duplicate payment */
+    const existing = await new Promise((resolve, reject) => {
       db.query(
-        `SELECT id FROM yaya_payments WHERE mpesa_receipt=?`,
+        `SELECT id FROM yaya_payments WHERE mpesa_receipt=? LIMIT 1`,
         [mpesa_receipt],
         (err, rows) => (err ? reject(err) : resolve(rows))
       );
     });
 
-    if (existing) {
+    if (existing.length) {
       return res.status(200).json({ message: "Already processed" });
     }
 
-    /* ✅ Insert payment */
+    /* ✅ Insert payment record */
     await new Promise((resolve, reject) => {
       db.query(
         `
-        INSERT INTO yaya_payments 
+        INSERT INTO yaya_payments
         (uid, user_type, mpesa_receipt, amount, payment_date)
         VALUES (?, 'EMPLOYER', ?, ?, NOW())
         `,
@@ -148,26 +148,29 @@ app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
       );
     });
 
-    /* ✅ Update employer */
+    /* ✅ Update employer access */
     await new Promise((resolve, reject) => {
       db.query(
         `
         UPDATE yaya_employers
-        SET mpesa_receipt=?, payment_date=NOW()
-        WHERE uid=?
+        SET
+          mpesa_receipt = ?,
+          payment_date = NOW(),
+          access_expires_at = DATE_ADD(NOW(), INTERVAL ? DAY)
+        WHERE uid = ?
         `,
-        [mpesa_receipt, uid],
+        [mpesa_receipt, planDays, uid],
         (err) => (err ? reject(err) : resolve())
       );
     });
 
-    /* 🧹 Clear cache */
-    await redis.del(`employer:${uid}`);
+    /* 🧹 Clear caches */
     await redis.del(`employer:access:${uid}`);
+    await redis.del(`employer:payment:${uid}`);
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("❌ Employer payment error:", error);
+    console.error("❌ Employer payment callback error:", error);
     return res.status(200).json({ success: false });
   }
 });
