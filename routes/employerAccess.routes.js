@@ -1,10 +1,10 @@
 const router = require("express").Router();
-const { checkEmployerAccessAndStatus,selectCandidate} = require("../controllers/employerAccess.controller");
+const { checkEmployerAccess ,checkEmployerPaymentStatus,selectCandidate} = require("../controllers/employerAccess.controller");
 
-// router.get("/:uid", checkEmployerAccess);
+router.get("/:uid", checkEmployerAccess);
 router.get(
   "/payment-status/:uid",
-  checkEmployerAccessAndStatus
+  checkEmployerPaymentStatus
 );
 
 router.post("/select", selectCandidate);
