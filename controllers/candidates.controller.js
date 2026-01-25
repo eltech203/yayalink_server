@@ -217,10 +217,11 @@ exports.filterCandidates = async (req, res) => {
       min_salary,
       max_salary,
       min_age,
-      max_age
+      max_age,
+      min_experience,
+      max_experience
     } = req.query;
 
-    // 🔑 Redis cache key (based on filters)
     const cacheKey = `candidates:filter:${JSON.stringify(req.query)}`;
 
     const cached = await redis.get(cacheKey);
@@ -282,16 +283,26 @@ exports.filterCandidates = async (req, res) => {
       params.push(max_age);
     }
 
+    /* ✅ EXPERIENCE FILTER (NUMERIC) */
+    if (min_experience) {
+      sql += " AND experience >= ?";
+      params.push(min_experience);
+    }
+
+    if (max_experience) {
+      sql += " AND experience <= ?";
+      params.push(max_experience);
+    }
+
     sql += " ORDER BY created_at DESC";
 
     db.query(sql, params, async (err, rows) => {
       if (err) {
-        console.error(err);
+        console.error("DB error:", err);
         return res.status(500).json({ message: "DB error" });
       }
 
       await redis.setEx(cacheKey, 300, JSON.stringify(rows));
-      
       res.json(rows);
     });
 
@@ -300,5 +311,6 @@ exports.filterCandidates = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
