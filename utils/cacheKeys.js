@@ -7,6 +7,7 @@ module.exports = {
   candidatesCacheKey: () => `candidates:all`,
   feedbackKey: () => `feedback:all`,
   graceKey: (uid) => `grace:${uid}`,
+  notificationKey: (uid) => `notification:${uid}`,
   filterCacheKey: (filters) =>
   `candidates:filter:${JSON.stringify(filters)}`,
 };
