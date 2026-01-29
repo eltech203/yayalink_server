@@ -6,6 +6,8 @@ const cors = require("cors");
 const db = require("../config/db");
 const redis = require("../config/redis")
 const { parseMpesaCallback } = require("../utils/mpesa");
+const { sendNotification } = require("../utils/notify");
+
 
 
 ///-----Port-----///
@@ -16,6 +18,8 @@ app.use(express.json());
 app.use(express.static("public"));
 
 ///----FireStore ----//
+
+
 
 
 //----AllOW ACCESS -----//
@@ -165,6 +169,18 @@ app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
         (err) => (err ? reject(err) : resolve())
       );
     });
+
+    /* ✅ Send notification */
+    const name = _Username;
+    const message = `Hi ${name}, your payment of KES ${amount} was successful. Your access has been updated.`;
+    await sendNotification({
+      user_uid: uid,
+      user_type: "EMPLOYER",
+      title: "Payment Successful",
+      message,
+      type: "PAYMENT",
+    });
+
 
     /* 🧹 Clear caches */
     await redis.del(`employer:access:${uid}`);

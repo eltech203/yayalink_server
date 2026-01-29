@@ -1,6 +1,7 @@
 const db = require("../config/db");
 const redis = require("../config/redis");
 const { isGracePeriodValid } = require("../utils/gracePeriod");
+const { sendNotification } = require("../utils/notify");
 const { getDaysRemaining } = require("../utils/paymentUtils");
 
 const accessKey = (uid) => `employer:access:${uid}`;
@@ -181,7 +182,18 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
         days_remaining: 0,
         message: "PAYMENT_REQUIRED",
       };
+
+      /* ✅ Send notification */
+          const message = `Hi ${rows[0].name || "Employer"}, your payment is due. Your access has been updated.`;
+          await sendNotification({
+            user_uid: uid,
+            user_type: "EMPLOYER",
+            title: "PAYMENT REQUIRED",
+            message,
+            type: "PAYMENT",
+          });
     }
+    
 
     /* 🔍 Check expiry */
     else {
@@ -220,6 +232,17 @@ exports.checkEmployerPaymentStatus = async (req, res) => {
           days_remaining: 0,
           message: "GRACE_PERIOD_EXPIRED",
         };
+
+        /* ✅ Send notification */
+        const message = `Hi ${rows[0].name || "Employer"}, your payment has expired and access revoked. Please renew to continue accessing candidates.`;
+        await sendNotification({
+          user_uid: uid,
+          user_type: "EMPLOYER",
+          title: "ACCESS REVOKED",
+          message,
+          type: "PAYMENT",
+        });
+
       } else {
         response = {
           paid: true,
@@ -302,12 +325,21 @@ exports.selectCandidate = async (req, res) => {
       );
     });
 
+   
     if (countRows[0].total >= 3) {
+      sendNotification({
+        user_uid: employer_uid,
+        user_type: "EMPLOYER",
+        title: "SELECTION LIMIT REACHED",
+        message: "You have reached the maximum number of selected candidates (3). Please manage your selections before adding more.",
+        type: "SYSTEM",
+      });
       return res.status(200).json({
         success: false,
         message: "SELECTION_LIMIT_REACHED",
       });
     }
+
 
     /* 🔹 3. Check candidate availability */
     const candidateRows = await new Promise((resolve, reject) => {
