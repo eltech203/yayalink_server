@@ -16,7 +16,7 @@ exports.getNotifications = async (req, res) => {
       `
       SELECT * FROM yaya_notifications
       WHERE user_uid=?
-      ORDER BY date_created DESC    
+      ORDER BY created_at DESC    
       `,
       [uid],
       async (err, rows) => {
