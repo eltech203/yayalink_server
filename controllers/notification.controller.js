@@ -31,15 +31,13 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
-// exports.markNotificationRead = async (req, res) => {
-//   const { id } = req.params;
-//   notificationKey = notificationKey(req.body.user_uid);
-//   await redis.del(notificationKey);
-//   db.query(
-//     `UPDATE yaya_notifications SET is_read=1 WHERE id=?`,
-//     [id],
-//     () => res.json({ success: true })
-//   );
-
-
-// };
+exports.markNotificationRead = async (req, res) => {
+  const { id } = req.params;
+  notificationKey = notificationKey(req.body.user_uid);
+  await redis.del(notificationKey);
+  db.query(
+    `UPDATE yaya_notifications SET is_read=1 WHERE id=?`,
+    [id],
+    () => res.json({ success: true })
+  );
+};
