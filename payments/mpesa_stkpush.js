@@ -112,6 +112,7 @@ const middleware = (req, res, next) => {
 
 ///------STK_CALLBACK-----///
 app.post("/stk_callback", _urlencoded, middleware, async (req, res) => {
+  console.log("Received STK callback:", req.body);
   try {
     const callback = req.body?.Body?.stkCallback;
 
