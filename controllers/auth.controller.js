@@ -41,10 +41,10 @@ exports.checkEmailExists = async (req, res) => {
 
   try {
     /* 🔹 Redis first */
-    const cached = await redis.get(emailKey(email));
-    if (cached) {
-      return res.status(200).json(JSON.parse(cached));
-    }
+    // const cached = await redis.get(emailKey(email));
+    // if (cached) {
+    //   return res.status(200).json(JSON.parse(cached));
+    // }
 
     /* 🔹 Check employer */
     const employer = await new Promise((resolve, reject) => {
