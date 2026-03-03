@@ -260,10 +260,10 @@ let _BfName,
 let _CheckoutRequestId;
 
 app.post("/stk_register", access, _urlencoded, function (req, res) {
-  _BPhone = req.body.Phone_NO;
+  _BPhone = req.body.phone;
   _BAmount = req.body.amount;
   _BUiD = req.body.user_id;
-  _BfName = req.body.userName;
+  _BfName = req.body.User_name;
 
   let endpoint = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
   let auth = "Bearer " + req.access_token;
@@ -371,7 +371,7 @@ app.post("/stk_callback2", _urlencoded, middleware2, async (req, res) => {
       db.query(
         `
         UPDATE yaya_bureaus
-        SET mpesa_receipt=?, payment_date=NOW(), preference_count=1
+        SET mpesa_receipt=?, payment_date=NOW()
         WHERE user_id=?
         `,
         [mpesa_receipt, uid],
