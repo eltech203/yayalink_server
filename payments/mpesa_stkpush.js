@@ -88,15 +88,11 @@ app.post("/stk", access, _urlencoded, function (req, res) {
     (error, response, body) => {
       if (error) {
         console.log(error);
-        res.status(404).json(error);
+      return  res.status(404).json(error);
       } else {
-        res.status(200).json(body);
         console.log(body);
-        console.log("USER_ID", _UserID);
-        console.log("USER_Name", _Username);
-
-        _checkoutRequestId = body.CheckoutRequestID;
-        console.log("CHECKOUT_ID", _checkoutRequestId);
+      return  res.status(200).json(body);
+        
       }
     }
   );
@@ -305,13 +301,11 @@ app.post("/stk_register", access, _urlencoded, function (req, res) {
     (error, response, body) => {
       if (error) {
         console.log(error);
-        res.status(404).json(error);
+       return res.status(404).json(error);
       } else {
-        res.status(200).json(body);
         console.log(body);
-        console.log("USER_ID", _BUiD);
-        _CheckoutRequestId = body.CheckoutRequestID;
-        console.log("CHECKOUT_ID", _CheckoutRequestId);
+      return  res.status(200).json(body);
+       
       }
     }
   );
