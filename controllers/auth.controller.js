@@ -61,7 +61,7 @@ exports.checkEmailExists = async (req, res) => {
         type: "EMPLOYER",
       };
 
-      await redis.setEx(emailKey(email), 600, JSON.stringify(response));
+      await redis.setEx(emailKey(email), 100, JSON.stringify(response));
       return res.status(200).json(response);
     }
 
@@ -78,7 +78,7 @@ exports.checkEmailExists = async (req, res) => {
       ? { exists: true, type: "BUREAU" }
       : { exists: false, type: null };
 
-    await redis.setEx(emailKey(email), 600, JSON.stringify(response));
+    await redis.setEx(emailKey(email), 100, JSON.stringify(response));
 
     return res.status(200).json(response);
   } catch (error) {
