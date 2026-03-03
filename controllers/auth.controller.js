@@ -1,4 +1,3 @@
-const e = require("express");
 const db = require("../config/db");
 const redis = require("../config/redis");
 const { userKey } = require("../utils/cacheKeys");
@@ -30,7 +29,7 @@ const emailKey = (email) =>
   `auth:email:exists:${email.toLowerCase()}`;
 
 exports.checkEmailExists = async (req, res) => {
-  const { email,user_type } = req.body;
+  const { email } = req.body;
 
   if (!email) {
     return res.status(200).json({
@@ -47,8 +46,7 @@ exports.checkEmailExists = async (req, res) => {
       return res.status(200).json(JSON.parse(cached));
     }
 
-    if (user_type === "Employer") { 
-/* 🔹 Check employer */
+    /* 🔹 Check employer */
     const employer = await new Promise((resolve, reject) => {
       db.query(
         `SELECT uid FROM yaya_employers WHERE email=? LIMIT 1`,
@@ -66,8 +64,8 @@ exports.checkEmailExists = async (req, res) => {
       await redis.setEx(emailKey(email), 600, JSON.stringify(response));
       return res.status(200).json(response);
     }
-    }else if (user_type === "Bureau") {
-/* 🔹 Check bureau */
+
+    /* 🔹 Check bureau */
     const bureau = await new Promise((resolve, reject) => {
       db.query(
         `SELECT id FROM yaya_bureaus WHERE email=? LIMIT 1`,
@@ -83,24 +81,6 @@ exports.checkEmailExists = async (req, res) => {
     await redis.setEx(emailKey(email), 600, JSON.stringify(response));
 
     return res.status(200).json(response);
-    }
-    else {  
-// /* 🔹 Check user */    
-//     const user = await new Promise((resolve, reject) => {
-//       db.query(
-//         `SELECT uid FROM yaya_users WHERE email=? LIMIT 1`,
-//         [email],
-//         (err, rows) => (err ? reject(err) : resolve(rows))
-//       );
-//     });
-
-//     const response = user.length
-//       ? { exists: true, type: "USER" }
-//       : { exists: false, type: null };
-
-//     await redis.setEx(emailKey(email), 600, JSON.stringify(response));
-//     return res.status(200).json(response);
-    }
   } catch (error) {
     console.error("Email check error:", error);
     return res.status(500).json({
